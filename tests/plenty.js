@@ -53,7 +53,20 @@ describe("plenty", () => {
   it("creates a new loan", async () => {
     const amount = 50000;
 
+    // TODO: all mints should be created on the program itself. Did not find out how.
+    // initialize_mint is pretty straight forward, but we need to create an account
+    // for the min before calling initialize. With Anchor I did not find how to
+    // do this yet. Pretty important to find out soon.
     const longTokenMint = await Token.createMint(
+      provider.connection,
+      payer,
+      authority,
+      null,
+      0,
+      TOKEN_PROGRAM_ID
+    );
+
+    const shortTokenMint = await Token.createMint(
       provider.connection,
       payer,
       authority,
@@ -66,6 +79,7 @@ describe("plenty", () => {
       accounts: {
         loan: loanAccount.publicKey,
         longTokenMint: longTokenMint.publicKey,
+        shortTokenMint: shortTokenMint.publicKey,
         user: provider.wallet.publicKey,
         systemProgram: SystemProgram.programId,
       },
@@ -75,6 +89,7 @@ describe("plenty", () => {
     const _loan = await program.account.loan.fetch(loanAccount.publicKey);
     assert.ok(_loan.user.equals(provider.wallet.publicKey));
     assert.ok(_loan.longTokenMint.equals(longTokenMint.publicKey));
+    assert.ok(_loan.shortTokenMint.equals(shortTokenMint.publicKey));
     assert.ok(_loan.amount.toNumber() === amount);
   });
 

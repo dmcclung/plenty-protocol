@@ -22,6 +22,7 @@ impl Default for State {
 pub struct Loan {
 	pub user: Pubkey,
 	pub long_token_mint: Pubkey,
+	pub short_token_mint: Pubkey,
 	pub amount: u64,
 }
 
@@ -30,6 +31,7 @@ impl Default for Loan {
 		Loan {
 			user: Pubkey::default(),
 			long_token_mint: Pubkey::default(),
+			short_token_mint: Pubkey::default(),
 			amount: 0,
 		}
 	}

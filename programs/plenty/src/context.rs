@@ -21,6 +21,8 @@ pub struct CreateLoan<'info> {
 	pub loan: Loader<'info, Loan>,
 	#[account(mut)]
 	pub long_token_mint: Account<'info, Mint>,
+	#[account(mut)]
+	pub short_token_mint: Account<'info, Mint>,
 	pub user: AccountInfo<'info>,
 	pub system_program: AccountInfo<'info>,
 }

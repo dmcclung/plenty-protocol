@@ -26,6 +26,7 @@ pub mod plenty {
         let mut loan = ctx.accounts.loan.load_init()?;
         loan.user = *ctx.accounts.user.key;
         loan.long_token_mint = *ctx.accounts.long_token_mint.to_account_info().key;
+        loan.short_token_mint = *ctx.accounts.short_token_mint.to_account_info().key;
         loan.amount = amount;
         Ok(())
     }
