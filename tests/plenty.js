@@ -52,38 +52,21 @@ describe("plenty", () => {
 
   it("creates a new loan", async () => {
     const amount = 50000;
-
-    // TODO: all mints should be created on the program itself. Did not find out how.
-    // initialize_mint is pretty straight forward, but we need to create an account
-    // for the min before calling initialize. With Anchor I did not find how to
-    // do this yet. Pretty important to find out soon.
-    const longTokenMint = await Token.createMint(
-      provider.connection,
-      payer,
-      authority,
-      null,
-      0,
-      TOKEN_PROGRAM_ID
-    );
-
-    const shortTokenMint = await Token.createMint(
-      provider.connection,
-      payer,
-      authority,
-      null,
-      0,
-      TOKEN_PROGRAM_ID
-    );
+    const longTokenMint = anchor.web3.Keypair.generate();
+    const shortTokenMint = anchor.web3.Keypair.generate();
 
     await program.rpc.createLoan(new anchor.BN(amount), {
       accounts: {
         loan: loanAccount.publicKey,
         longTokenMint: longTokenMint.publicKey,
         shortTokenMint: shortTokenMint.publicKey,
+        authority: authority,
         user: provider.wallet.publicKey,
         systemProgram: SystemProgram.programId,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
       },
-      signers: [loanAccount],
+      signers: [loanAccount, shortTokenMint, longTokenMint],
     });
 
     const _loan = await program.account.loan.fetch(loanAccount.publicKey);

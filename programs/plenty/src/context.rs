@@ -19,12 +19,19 @@ pub struct Init<'info> {
 pub struct CreateLoan<'info> {
 	#[account(init, payer = user)]
 	pub loan: Loader<'info, Loan>,
-	#[account(mut)]
+
+	#[account(init, mint::decimals = 0, mint::authority = authority, payer = user)]
 	pub long_token_mint: Account<'info, Mint>,
-	#[account(mut)]
+
+	#[account(init, mint::decimals = 0, mint::authority = authority, payer = user)]
 	pub short_token_mint: Account<'info, Mint>,
+
+	#[account(signer)]
 	pub user: AccountInfo<'info>,
+	pub authority: AccountInfo<'info>,
 	pub system_program: AccountInfo<'info>,
+	pub token_program: AccountInfo<'info>,
+	pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
