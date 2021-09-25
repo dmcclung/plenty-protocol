@@ -112,4 +112,41 @@ describe("plenty", () => {
     );
     assert.ok(_userTokenAccount.amount.toNumber() === size);
   });
+
+  it("trades short on a loan", async () => {
+    const size = 100;
+    const [stateAddress, _bump] =
+      await anchor.web3.PublicKey.findProgramAddress(
+        [Buffer.from(anchor.utils.bytes.utf8.encode("state_v1"))],
+        program.programId
+      );
+
+    // Fetch the loan and its state.
+    const loan = await program.account.loan.fetch(loanAccount.publicKey);
+
+    // The user his long token account.
+    const userTokenAccount = await common.createTokenAccount(
+      provider,
+      loan.shortTokenMint,
+      provider.wallet.publicKey
+    );
+
+    await program.rpc.tradeShort(new anchor.BN(size), {
+      accounts: {
+        state: stateAddress,
+        authority: authority,
+        loan: loanAccount.publicKey,
+        user: provider.wallet.publicKey,
+        userTokenAccount: userTokenAccount,
+        mint: loan.shortTokenMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      },
+    });
+
+    const _userTokenAccount = await common.getTokenAccount(
+      provider,
+      userTokenAccount
+    );
+    assert.ok(_userTokenAccount.amount.toNumber() === size);
+  });
 });

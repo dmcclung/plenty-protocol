@@ -40,4 +40,14 @@ pub mod plenty {
         token::mint_to(cpi_ctx_mint, size.into())?;
         Ok(())
     }
+
+    pub fn trade_short(ctx: Context<TradeShort>, size: u64) -> ProgramResult {
+        let state = ctx.accounts.state.load_mut()?;
+        let seeds = &[AUTHORITY_SEED.as_bytes(), &[state.nonce]];
+        let signer = &[&seeds[..]];
+
+        let cpi_ctx_mint: CpiContext<MintTo> = CpiContext::from(&*ctx.accounts).with_signer(signer);
+        token::mint_to(cpi_ctx_mint, size.into())?;
+        Ok(())
+    }
 }
