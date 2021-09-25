@@ -107,5 +107,11 @@ describe("plenty", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
       },
     });
+
+    const _userTokenAccount = await common.getTokenAccount(
+      provider,
+      userTokenAccount
+    );
+    assert.ok(_userTokenAccount.amount.toNumber() === size);
   });
 });
