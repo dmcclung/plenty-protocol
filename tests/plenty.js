@@ -86,13 +86,7 @@ describe("plenty", () => {
 
     // Fetch the loan and its state.
     const loan = await program.account.loan.fetch(loanAccount.publicKey);
-
-    // The user his long token account.
-    const userTokenAccount = await common.createTokenAccount(
-      provider,
-      loan.longTokenMint,
-      provider.wallet.publicKey
-    );
+    const userTokenAccount = anchor.web3.Keypair.generate();
 
     await program.rpc.tradeLong(new anchor.BN(size), {
       accounts: {
@@ -100,15 +94,18 @@ describe("plenty", () => {
         authority: authority,
         loan: loanAccount.publicKey,
         user: provider.wallet.publicKey,
-        userTokenAccount: userTokenAccount,
+        userTokenAccount: userTokenAccount.publicKey,
         mint: loan.longTokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
       },
+      signers: [userTokenAccount],
     });
 
     const _userTokenAccount = await common.getTokenAccount(
       provider,
-      userTokenAccount
+      userTokenAccount.publicKey
     );
     assert.ok(_userTokenAccount.amount.toNumber() === size);
   });
@@ -123,13 +120,7 @@ describe("plenty", () => {
 
     // Fetch the loan and its state.
     const loan = await program.account.loan.fetch(loanAccount.publicKey);
-
-    // The user his long token account.
-    const userTokenAccount = await common.createTokenAccount(
-      provider,
-      loan.shortTokenMint,
-      provider.wallet.publicKey
-    );
+    const userTokenAccount = anchor.web3.Keypair.generate();
 
     await program.rpc.tradeShort(new anchor.BN(size), {
       accounts: {
@@ -137,15 +128,18 @@ describe("plenty", () => {
         authority: authority,
         loan: loanAccount.publicKey,
         user: provider.wallet.publicKey,
-        userTokenAccount: userTokenAccount,
+        userTokenAccount: userTokenAccount.publicKey,
         mint: loan.shortTokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
       },
+      signers: [userTokenAccount],
     });
 
     const _userTokenAccount = await common.getTokenAccount(
       provider,
-      userTokenAccount
+      userTokenAccount.publicKey
     );
     assert.ok(_userTokenAccount.amount.toNumber() === size);
   });

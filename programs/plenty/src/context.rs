@@ -45,11 +45,13 @@ pub struct TradeLong<'info> {
 	pub loan: Loader<'info, Loan>,
 	#[account(signer)]
 	pub user: AccountInfo<'info>,
-	#[account(mut)]
+	#[account(init, token::mint = mint, token::authority = user, payer = user)]
 	pub user_token_account: Account<'info, TokenAccount>,
 	#[account(mut, constraint = mint.to_account_info().key == &loan.load()?.long_token_mint)]
 	pub mint: Account<'info, Mint>,
 	pub token_program: AccountInfo<'info>,
+	pub system_program: AccountInfo<'info>,
+	pub rent: Sysvar<'info, Rent>,
 }
 
 impl<'a, 'b, 'c, 'info> From<&TradeLong<'info>> for CpiContext<'a, 'b, 'c, 'info, MintTo<'info>> {
@@ -78,11 +80,13 @@ pub struct TradeShort<'info> {
 	pub loan: Loader<'info, Loan>,
 	#[account(signer)]
 	pub user: AccountInfo<'info>,
-	#[account(mut)]
+	#[account(init, token::mint = mint, token::authority = user, payer = user)]
 	pub user_token_account: Account<'info, TokenAccount>,
 	#[account(mut, constraint = mint.to_account_info().key == &loan.load()?.short_token_mint)]
 	pub mint: Account<'info, Mint>,
 	pub token_program: AccountInfo<'info>,
+	pub system_program: AccountInfo<'info>,
+	pub rent: Sysvar<'info, Rent>,
 }
 
 impl<'a, 'b, 'c, 'info> From<&TradeShort<'info>> for CpiContext<'a, 'b, 'c, 'info, MintTo<'info>> {
