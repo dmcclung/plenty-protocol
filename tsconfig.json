@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"types": [
-			"mocha",
+			"mocha"
 		],
 		"typeRoots": [
 			"./node_modules/@types"
