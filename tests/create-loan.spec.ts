@@ -1,17 +1,16 @@
-const anchor = require("@project-serum/anchor");
-const assert = require("assert");
-const { SystemProgram } = anchor.web3;
-const common = require("@project-serum/common");
-const { TOKEN_PROGRAM_ID, Token } = require("@solana/spl-token");
+import * as anchor from "@project-serum/anchor";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import assert from "assert";
+import * as common from "@project-serum/common";
+const provider = anchor.Provider.local();
 
-describe("plenty", () => {
-  const provider = anchor.Provider.env();
+describe("create-loan", () => {
+  const { SystemProgram } = anchor.web3;
   anchor.setProvider(provider);
   const program = anchor.workspace.Plenty;
 
   const payer = anchor.web3.Keypair.generate();
   const loanAccount = anchor.web3.Keypair.generate();
-
   let authority = null;
 
   it("airdrops to payer", async () => {
