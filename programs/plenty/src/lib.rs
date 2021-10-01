@@ -1,7 +1,15 @@
 pub mod account;
 pub mod context;
+pub mod interest;
+pub mod bonding_curve;
 
 use crate::context::*;
+use crate::interest::{ calculate_interest_rate, DECIMALS };
+use crate::bonding_curve::{ 
+    calculate_purchase_return, 
+    calculate_sale_return, 
+    calculate_token_price 
+};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, MintTo};
 
@@ -36,8 +44,35 @@ pub mod plenty {
         let seeds = &[AUTHORITY_SEED.as_bytes(), &[state.nonce]];
         let signer = &[&seeds[..]];
 
+        // buy tokens
+        let mut loan = ctx.accounts.loan.load_init()?;
+        // figure out token price
+        let token_price = calculate_token_price(loan.reserve_long_token_balance, loan.long_token_circulation);
+        // figure out solana value transfered
+        
+        // figure out how many tokens to mint
+        
+        // mint the value
+
         let cpi_ctx_mint: CpiContext<MintTo> = CpiContext::from(&*ctx.accounts).with_signer(signer);
         token::mint_to(cpi_ctx_mint, size.into())?;
+
+        // set token price paid
+        // update circulation
+
+        // update interest rate
+
+        let interest_rate = calculate_interest_rate(loan.current_capital, 
+                                                    loan.required_capital,
+                                                    loan.long_token_circulation, 
+                                                    loan.short_token_circulation, 
+                                                    loan.long_token_price, 
+                                                    loan.short_token_price).unwrap();
+        loan.interest_rate = (interest_rate * DECIMALS) as u64;
+        
+        // TODO: How to calculate interest owed?
+        // Interest rate is per block?
+
         Ok(())
     }
 

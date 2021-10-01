@@ -17,3 +17,4 @@ default = []
 [dependencies]
 anchor-lang = "0.16.0"
 anchor-spl = "0.16.0"
+rust_decimal = { version = "=1.15.0", features = ["maths"] }
