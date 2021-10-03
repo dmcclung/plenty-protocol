@@ -10,7 +10,14 @@ use crate::bonding_curve::{
     calculate_sale_return, 
     calculate_token_price 
 };
+
 use anchor_lang::prelude::*;
+
+use anchor_lang::solana_program::{
+    program::{invoke},
+    system_instruction,
+};
+
 use anchor_spl::token::{self, MintTo};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
@@ -44,23 +51,33 @@ pub mod plenty {
         let seeds = &[AUTHORITY_SEED.as_bytes(), &[state.nonce]];
         let signer = &[&seeds[..]];
 
-        // buy tokens
         let mut loan = ctx.accounts.loan.load_init()?;
-        // figure out token price
-        let token_price = calculate_token_price(loan.reserve_long_token_balance, loan.long_token_circulation);
-        // figure out solana value transfered
-        
-        // figure out how many tokens to mint
-        
-        // mint the value
 
+        let token_price = calculate_token_price(loan.reserve_long_token_balance, loan.long_token_circulation).unwrap();
+        loan.long_token_price = token_price;
+        
+        if token_price * size > ctx.accounts.user.lamports() {
+            return Err(ErrorCode::InsufficientFunds.into())
+        }
+
+        invoke(
+            &system_instruction::transfer(
+                &ctx.accounts.user.key,
+                ctx.accounts.authority.key,
+                token_price * size,
+            ),
+            &[
+                ctx.accounts.user.clone(),
+                ctx.accounts.authority.clone(),
+                ctx.accounts.system_program.clone(),
+            ],
+        )?;
+        
         let cpi_ctx_mint: CpiContext<MintTo> = CpiContext::from(&*ctx.accounts).with_signer(signer);
         token::mint_to(cpi_ctx_mint, size.into())?;
 
-        // set token price paid
-        // update circulation
-
-        // update interest rate
+        loan.long_token_circulation += size;
+        loan.current_capital += token_price * size;
 
         let interest_rate = calculate_interest_rate(loan.current_capital, 
                                                     loan.required_capital,
@@ -69,9 +86,6 @@ pub mod plenty {
                                                     loan.long_token_price, 
                                                     loan.short_token_price).unwrap();
         loan.interest_rate = (interest_rate * DECIMALS) as u64;
-        
-        // TODO: How to calculate interest owed?
-        // Interest rate is per block?
 
         Ok(())
     }
@@ -85,4 +99,10 @@ pub mod plenty {
         token::mint_to(cpi_ctx_mint, size.into())?;
         Ok(())
     }
+}
+
+#[error]
+pub enum ErrorCode {
+    #[msg("Insufficient funds")]
+    InsufficientFunds,
 }

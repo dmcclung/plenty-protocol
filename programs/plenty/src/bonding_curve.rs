@@ -32,10 +32,10 @@ pub fn calculate_sale_return(continuous_tokens_received: u64,
 }
 
 pub fn calculate_token_price(reserve_token_balance: u64,
-                             continuous_token_supply: u64) -> Result<f64, &'static str> {
+                             continuous_token_supply: u64) -> Result<u64, &'static str> {
     // Continuous Token Price = Reserve Token Balance / (Continuous Token Supply x Reserve Ratio)
     // https://yos.io/2018/11/10/bonding-curves
 
-    let token_price = reserve_token_balance as f64 / (continuous_token_supply  as f64 * RESERVE_RATIO);
-    Ok(token_price)
+    let token_price = reserve_token_balance as f64 / (continuous_token_supply as f64 * RESERVE_RATIO);
+    Ok(token_price as u64)
 }
