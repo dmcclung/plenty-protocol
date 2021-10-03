@@ -7,8 +7,6 @@ pub const BASE_VARIABLE_RATE: f64 = 00.0;
 pub const OPTIMAL_FUNDING_RATE1: f64 = 0.60;
 pub const OPTIMAL_FUNDING_RATE2: f64 = 1.00;
 
-pub const DECIMALS: f64 = u64::pow(10, 9) as f64;
-
 pub fn calculate_interest_rate(current_capital: u64,
                                required_capital: u64,
                                long_token_circulation: u64,
