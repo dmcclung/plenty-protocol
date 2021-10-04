@@ -146,15 +146,14 @@ pub mod plenty {
         let token_price = calculate_token_price(loan.reserve_short_token_balance, loan.short_token_circulation).unwrap();
         loan.short_token_price = token_price;
 
-        // token_price is sell price
-        // TODO: check that user has size tokens
+        let tokens = ctx.accounts.user_token_account.amount;
+        if tokens != size {
+            return Err(ErrorCode::OrderSize.into())
+        }
 
-
-        // burn x tokens
         let cpi_ctx_burn: CpiContext<Burn> = CpiContext::from(&*ctx.accounts).with_signer(signer);
         token::burn(cpi_ctx_burn, size.into())?;
 
-        // transfer sol from authority to user
         invoke(
             &system_instruction::transfer(
                 ctx.accounts.authority.key,
@@ -187,4 +186,6 @@ pub mod plenty {
 pub enum ErrorCode {
     #[msg("Insufficient funds")]
     InsufficientFunds,
+    #[msg("Order size does not equal owned")]
+    OrderSize
 }
