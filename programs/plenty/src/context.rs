@@ -66,6 +66,18 @@ impl<'a, 'b, 'c, 'info> From<&TradeLong<'info>> for CpiContext<'a, 'b, 'c, 'info
 	}
 }
 
+impl<'a, 'b, 'c, 'info> From<&TradeLong<'info>> for CpiContext<'a, 'b, 'c, 'info, Burn<'info>> {
+	fn from(accounts: &TradeLong<'info>) -> CpiContext<'a, 'b, 'c, 'info, Burn<'info>> {
+		let cpi_accounts = Burn {
+			mint: accounts.mint.to_account_info(),
+			to: accounts.user_token_account.to_account_info(),
+			authority: accounts.authority.to_account_info(),
+		};
+		let cpi_program = accounts.token_program.to_account_info();
+		CpiContext::new(cpi_program, cpi_accounts)
+	}
+}
+
 #[derive(Accounts)]
 pub struct TradeShort<'info> {
 	#[account(mut,

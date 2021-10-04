@@ -48,7 +48,7 @@ pub mod plenty {
         Ok(())
     }
 
-    pub fn trade_long(ctx: Context<TradeLong>, size: u64) -> ProgramResult {
+    pub fn trade_long(ctx: Context<TradeLong>, size: u64, buy: bool) -> ProgramResult {
         let state = ctx.accounts.state.load_mut()?;
         let seeds = &[AUTHORITY_SEED.as_bytes(), &[state.nonce]];
         let signer = &[&seeds[..]];
@@ -58,28 +58,54 @@ pub mod plenty {
         let token_price = calculate_token_price(loan.reserve_long_token_balance, loan.long_token_circulation).unwrap();
         loan.long_token_price = token_price;
         
-        if token_price * size > ctx.accounts.user.lamports() {
-            return Err(ErrorCode::InsufficientFunds.into())
+        if buy {
+            if token_price * size > ctx.accounts.user.lamports() {
+                return Err(ErrorCode::InsufficientFunds.into())
+            }
+
+            invoke(
+                &system_instruction::transfer(
+                    &ctx.accounts.user.key,
+                    ctx.accounts.authority.key,
+                    token_price * size,
+                ),
+                &[
+                    ctx.accounts.user.clone(),
+                    ctx.accounts.authority.clone(),
+                    ctx.accounts.system_program.clone(),
+                ],
+            )?;
+            
+            let cpi_ctx_mint: CpiContext<MintTo> = CpiContext::from(&*ctx.accounts).with_signer(signer);
+            token::mint_to(cpi_ctx_mint, size.into())?;
+
+            loan.long_token_circulation += size;
+            loan.current_capital += token_price * size;
+        } else {
+            let tokens = ctx.accounts.user_token_account.amount;
+            if tokens != size {
+                return Err(ErrorCode::OrderSize.into())
+            }
+
+            let cpi_ctx_burn: CpiContext<Burn> = CpiContext::from(&*ctx.accounts).with_signer(signer);
+            token::burn(cpi_ctx_burn, size.into())?;
+
+            invoke(
+                &system_instruction::transfer(
+                    ctx.accounts.authority.key,
+                    ctx.accounts.user.key,
+                    token_price * size,
+                ),
+                &[
+                    ctx.accounts.authority.clone(),
+                    ctx.accounts.user.clone(),
+                    ctx.accounts.system_program.clone(),
+                ],
+            )?;
+
+            loan.long_token_circulation -= size;
+            loan.current_capital -= token_price * size;
         }
-
-        invoke(
-            &system_instruction::transfer(
-                &ctx.accounts.user.key,
-                ctx.accounts.authority.key,
-                token_price * size,
-            ),
-            &[
-                ctx.accounts.user.clone(),
-                ctx.accounts.authority.clone(),
-                ctx.accounts.system_program.clone(),
-            ],
-        )?;
-        
-        let cpi_ctx_mint: CpiContext<MintTo> = CpiContext::from(&*ctx.accounts).with_signer(signer);
-        token::mint_to(cpi_ctx_mint, size.into())?;
-
-        loan.long_token_circulation += size;
-        loan.current_capital += token_price * size;
 
         let interest_rate = calculate_interest_rate(loan.current_capital, 
                                                     loan.required_capital,
@@ -92,7 +118,7 @@ pub mod plenty {
         Ok(())
     }
 
-    pub fn trade_short_buy(ctx: Context<TradeShort>, size: u64) -> ProgramResult {
+    pub fn trade_short(ctx: Context<TradeShort>, size: u64, buy: bool) -> ProgramResult {
         let state = ctx.accounts.state.load_mut()?;
         let seeds = &[AUTHORITY_SEED.as_bytes(), &[state.nonce]];
         let signer = &[&seeds[..]];
@@ -102,73 +128,54 @@ pub mod plenty {
         let token_price = calculate_token_price(loan.reserve_short_token_balance, loan.short_token_circulation).unwrap();
         loan.short_token_price = token_price;
         
-        if token_price * size > ctx.accounts.user.lamports() {
-            return Err(ErrorCode::InsufficientFunds.into())
+        if buy {
+            if token_price * size > ctx.accounts.user.lamports() {
+                return Err(ErrorCode::InsufficientFunds.into())
+            }
+    
+            invoke(
+                &system_instruction::transfer(
+                    &ctx.accounts.user.key,
+                    ctx.accounts.authority.key,
+                    token_price * size,
+                ),
+                &[
+                    ctx.accounts.user.clone(),
+                    ctx.accounts.authority.clone(),
+                    ctx.accounts.system_program.clone(),
+                ],
+            )?;
+    
+            let cpi_ctx_mint: CpiContext<MintTo> = CpiContext::from(&*ctx.accounts).with_signer(signer);
+            token::mint_to(cpi_ctx_mint, size.into())?;
+    
+            loan.short_token_circulation += size;
+            loan.current_capital += token_price * size;
+        } else {
+            let tokens = ctx.accounts.user_token_account.amount;
+            if tokens != size {
+                return Err(ErrorCode::OrderSize.into())
+            }
+
+            let cpi_ctx_burn: CpiContext<Burn> = CpiContext::from(&*ctx.accounts).with_signer(signer);
+            token::burn(cpi_ctx_burn, size.into())?;
+
+            invoke(
+                &system_instruction::transfer(
+                    ctx.accounts.authority.key,
+                    ctx.accounts.user.key,
+                    token_price * size,
+                ),
+                &[
+                    ctx.accounts.authority.clone(),
+                    ctx.accounts.user.clone(),
+                    ctx.accounts.system_program.clone(),
+                ],
+            )?;
+
+            loan.short_token_circulation -= size;
+            loan.current_capital -= token_price * size;
         }
-
-        invoke(
-            &system_instruction::transfer(
-                &ctx.accounts.user.key,
-                ctx.accounts.authority.key,
-                token_price * size,
-            ),
-            &[
-                ctx.accounts.user.clone(),
-                ctx.accounts.authority.clone(),
-                ctx.accounts.system_program.clone(),
-            ],
-        )?;
-
-        let cpi_ctx_mint: CpiContext<MintTo> = CpiContext::from(&*ctx.accounts).with_signer(signer);
-        token::mint_to(cpi_ctx_mint, size.into())?;
-
-        loan.short_token_circulation += size;
-        loan.current_capital += token_price * size;
-
-        let interest_rate = calculate_interest_rate(loan.current_capital, 
-                                                    loan.required_capital,
-                                                    loan.long_token_circulation, 
-                                                    loan.short_token_circulation, 
-                                                    loan.long_token_price, 
-                                                    loan.short_token_price).unwrap();
-        loan.interest_rate = (interest_rate * DECIMALS) as u64;
-
-        Ok(())
-    }
-
-    pub fn trade_short_sell(ctx: Context<TradeShort>, size: u64) -> ProgramResult {
-        let state = ctx.accounts.state.load_mut()?;
-        let seeds = &[AUTHORITY_SEED.as_bytes(), &[state.nonce]];
-        let signer = &[&seeds[..]];
-
-        let mut loan = ctx.accounts.loan.load_init()?;
-
-        let token_price = calculate_token_price(loan.reserve_short_token_balance, loan.short_token_circulation).unwrap();
-        loan.short_token_price = token_price;
-
-        let tokens = ctx.accounts.user_token_account.amount;
-        if tokens != size {
-            return Err(ErrorCode::OrderSize.into())
-        }
-
-        let cpi_ctx_burn: CpiContext<Burn> = CpiContext::from(&*ctx.accounts).with_signer(signer);
-        token::burn(cpi_ctx_burn, size.into())?;
-
-        invoke(
-            &system_instruction::transfer(
-                ctx.accounts.authority.key,
-                ctx.accounts.user.key,
-                token_price * size,
-            ),
-            &[
-                ctx.accounts.authority.clone(),
-                ctx.accounts.user.clone(),
-                ctx.accounts.system_program.clone(),
-            ],
-        )?;
-
-        loan.short_token_circulation -= size;
-        loan.current_capital -= token_price * size;
 
         let interest_rate = calculate_interest_rate(loan.current_capital, 
                                                     loan.required_capital,
