@@ -18,7 +18,7 @@ use anchor_lang::solana_program::{
     system_instruction,
 };
 
-use anchor_spl::token::{self, MintTo};
+use anchor_spl::token::{ self, MintTo, Burn };
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -92,7 +92,7 @@ pub mod plenty {
         Ok(())
     }
 
-    pub fn trade_short(ctx: Context<TradeShort>, size: u64) -> ProgramResult {
+    pub fn trade_short_buy(ctx: Context<TradeShort>, size: u64) -> ProgramResult {
         let state = ctx.accounts.state.load_mut()?;
         let seeds = &[AUTHORITY_SEED.as_bytes(), &[state.nonce]];
         let signer = &[&seeds[..]];
@@ -124,6 +124,52 @@ pub mod plenty {
 
         loan.short_token_circulation += size;
         loan.current_capital += token_price * size;
+
+        let interest_rate = calculate_interest_rate(loan.current_capital, 
+                                                    loan.required_capital,
+                                                    loan.long_token_circulation, 
+                                                    loan.short_token_circulation, 
+                                                    loan.long_token_price, 
+                                                    loan.short_token_price).unwrap();
+        loan.interest_rate = (interest_rate * DECIMALS) as u64;
+
+        Ok(())
+    }
+
+    pub fn trade_short_sell(ctx: Context<TradeShort>, size: u64) -> ProgramResult {
+        let state = ctx.accounts.state.load_mut()?;
+        let seeds = &[AUTHORITY_SEED.as_bytes(), &[state.nonce]];
+        let signer = &[&seeds[..]];
+
+        let mut loan = ctx.accounts.loan.load_init()?;
+
+        let token_price = calculate_token_price(loan.reserve_short_token_balance, loan.short_token_circulation).unwrap();
+        loan.short_token_price = token_price;
+
+        // token_price is sell price
+        // TODO: check that user has size tokens
+
+
+        // burn x tokens
+        let cpi_ctx_burn: CpiContext<Burn> = CpiContext::from(&*ctx.accounts).with_signer(signer);
+        token::burn(cpi_ctx_burn, size.into())?;
+
+        // transfer sol from authority to user
+        invoke(
+            &system_instruction::transfer(
+                ctx.accounts.authority.key,
+                ctx.accounts.user.key,
+                token_price * size,
+            ),
+            &[
+                ctx.accounts.authority.clone(),
+                ctx.accounts.user.clone(),
+                ctx.accounts.system_program.clone(),
+            ],
+        )?;
+
+        loan.short_token_circulation -= size;
+        loan.current_capital -= token_price * size;
 
         let interest_rate = calculate_interest_rate(loan.current_capital, 
                                                     loan.required_capital,

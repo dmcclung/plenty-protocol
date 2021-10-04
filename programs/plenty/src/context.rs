@@ -1,7 +1,7 @@
 use crate::account::*;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
-use anchor_spl::token::{Mint, MintTo, TokenAccount};
+use anchor_spl::token::{Burn, Mint, MintTo, TokenAccount};
 
 #[derive(Accounts)]
 #[instruction(bump: u8)]
@@ -92,6 +92,18 @@ pub struct TradeShort<'info> {
 impl<'a, 'b, 'c, 'info> From<&TradeShort<'info>> for CpiContext<'a, 'b, 'c, 'info, MintTo<'info>> {
 	fn from(accounts: &TradeShort<'info>) -> CpiContext<'a, 'b, 'c, 'info, MintTo<'info>> {
 		let cpi_accounts = MintTo {
+			mint: accounts.mint.to_account_info(),
+			to: accounts.user_token_account.to_account_info(),
+			authority: accounts.authority.to_account_info(),
+		};
+		let cpi_program = accounts.token_program.to_account_info();
+		CpiContext::new(cpi_program, cpi_accounts)
+	}
+}
+
+impl<'a, 'b, 'c, 'info> From<&TradeShort<'info>> for CpiContext<'a, 'b, 'c, 'info, Burn<'info>> {
+	fn from(accounts: &TradeShort<'info>) -> CpiContext<'a, 'b, 'c, 'info, Burn<'info>> {
+		let cpi_accounts = Burn {
 			mint: accounts.mint.to_account_info(),
 			to: accounts.user_token_account.to_account_info(),
 			authority: accounts.authority.to_account_info(),
