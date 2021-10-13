@@ -1,7 +1,14 @@
-
+import React from 'react'
 
 export const Trade = () => {
+
     return (
-        <h1>Trade</h1>
+        <div>
+            <button>Sell Long</button>
+            <button>Buy Long</button>
+            <button>Buy Short</button>
+            <button>Sell Short</button>
+        </div>
     )
 }
+

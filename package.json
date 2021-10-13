@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start": "parcel client/src/index.html",
+    "start": "parcel serve client/src/index.html",
     "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
   },
   "directories": {
